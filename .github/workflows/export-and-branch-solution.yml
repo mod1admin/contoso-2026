@@ -73,20 +73,10 @@ jobs:
           tenant-id: ${{ env.TENANT_ID }}
           solution-name: ${{ inputs.solution_name }}
           solution-output-file: >-
-            ${{ inputs.solution_exported_folder }}${{
-            inputs.solution_name }}_managed.zip
+            ${{ inputs.solution_exported_folder }}${{ inputs.solution_name }}_managed.zip
           managed: true
 
-     - name: Upload solution packages
-       uses: actions/upload-artifact@v4
-       with:
-          name: ${{ inputs.solution_name }}-solution-packages
-          path: |
-            ${{ inputs.solution_exported_folder }}${{ inputs.solution_name }}_unmanaged.zip
-            ${{ inputs.solution_exported_folder }}${{ inputs.solution_name }}_managed.zip
-          if-no-files-found: error
-
-          
+        
     - name: unpack-solution action
       uses: microsoft/powerplatform-actions/unpack-solution@v1.9.2
       with:
