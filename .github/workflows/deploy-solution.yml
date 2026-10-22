@@ -1,0 +1,26 @@
+name: Deploy solution2610222
+
+on:
+  workflow_run:
+    workflows: ["Pack solution2610222"]
+    branches: [main]
+    types:
+      - completed
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: windows-latest
+    environment: production
+    steps:
+      - uses: dawidd6/action-download-artifact@v2
+        with:
+          workflow: pack-solution.yml
+          name: packed-solution
+      - uses: microsoft/powerplatform-actions/import-solution@v0
+        with:
+          environment-url: 'https://org3b528f5e.crm.dynamics.com'
+          app-id: '36087e4a-e5e2-4912-9dbd-444170eca14f'
+          client-secret: ${{ secrets.PowerPlatformSPN }}
+          tenant-id: 'fa878f01-f5fc-4c7d-bdcd-5520847a5203'
+          solution-file: solution2610222_managed.zip
