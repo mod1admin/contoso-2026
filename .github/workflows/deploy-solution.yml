@@ -1,26 +1,98 @@
-name: Deploy solution2610222
+name: Release solution2610222
 
 on:
   workflow_run:
-    workflows: ["Pack solution2610222"]
-    branches: [main]
+    workflows:
+      - Pack solution2610222
+    branches:
+      - main
     types:
       - completed
-  workflow_dispatch:
+
+permissions:
+  actions: read
+  contents: read
+
+concurrency:
+  group: production-solution2610222
+  cancel-in-progress: false
 
 jobs:
   deploy:
+    # Deploy only when the pack workflow succeeds.
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+
     runs-on: windows-latest
+    timeout-minutes: 90
     environment: production
+
     steps:
-      - uses: dawidd6/action-download-artifact@v2
+      - name: Download packed solution
+        uses: actions/download-artifact@v4
         with:
-          workflow: pack-solution.yml
           name: packed-solution
-      - uses: microsoft/powerplatform-actions/import-solution@v0
+          path: downloaded
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          run-id: ${{ github.event.workflow_run.id }}
+
+      - name: Locate managed solution
+        id: managed-solution
+        shell: pwsh
+        run: |
+          $files = @(
+            Get-ChildItem `
+              -Path "${{ github.workspace }}\downloaded" `
+              -Filter "solution2610222_managed.zip" `
+              -File `
+              -Recurse
+          )
+
+          if ($files.Count -eq 0) {
+            Write-Host "Downloaded artifact contents:"
+
+            Get-ChildItem `
+              -Path "${{ github.workspace }}\downloaded" `
+              -Recurse
+
+            throw "solution2610222_managed.zip was not found."
+          }
+
+          if ($files.Count -gt 1) {
+            $files | ForEach-Object {
+              Write-Host $_.FullName
+            }
+
+            throw "Multiple managed solution files were found."
+          }
+
+          $solutionFile = $files[0].FullName
+
+          Write-Host "Managed solution: $solutionFile"
+
+          "solution_file=$solutionFile" |
+            Out-File `
+              -FilePath $env:GITHUB_OUTPUT `
+              -Encoding utf8 `
+              -Append
+
+      - name: Install Power Platform Tools
+        uses: microsoft/powerplatform-actions/actions-install@v1
+
+      - name: Verify production connection
+        uses: microsoft/powerplatform-actions/who-am-i@v1
         with:
           environment-url: 'https://org3b528f5e.crm.dynamics.com'
           app-id: '36087e4a-e5e2-4912-9dbd-444170eca14f'
           client-secret: ${{ secrets.PowerPlatformSPN }}
           tenant-id: 'fa878f01-f5fc-4c7d-bdcd-5520847a5203'
-          solution-file: solution2610222_managed.zip
+
+      - name: Import managed solution
+        uses: microsoft/powerplatform-actions/import-solution@v1
+        with:
+          environment-url: 'https://org3b528f5e.crm.dynamics.com'
+          app-id: '36087e4a-e5e2-4912-9dbd-444170eca14f'
+          client-secret: ${{ secrets.PowerPlatformSPN }}
+          tenant-id: 'fa878f01-f5fc-4c7d-bdcd-5520847a5203'
+          solution-file: ${{ steps.managed-solution.outputs.solution_file }}
+          run-asynchronously: true
+          max-async-wait-time: 60
