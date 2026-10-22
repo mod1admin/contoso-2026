@@ -14,7 +14,12 @@ jobs:
         with:
           solution-file: out/exported/solution2610222.zip
           solution-folder: solutions/solution2610222
-          solution-type: Both
+          solution-type: Unmanaged
+       - uses: microsoft/powerplatform-actions/pack-solution@v1
+        with:
+          solution-file: out/exported/solution2610222_managed.zip
+          solution-folder: solutions/solution2610222
+          solution-type: Managed         
       - uses: actions/upload-artifact@v4
         with:
           name: packed-solution
