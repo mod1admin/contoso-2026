@@ -2,7 +2,7 @@ name: Pack solution2610222
 on:
   push:
     paths:
-      - contents/**
+      - out/solutions/solution2610222/**
   workflow_dispatch:
 jobs:
   build:
@@ -13,7 +13,7 @@ jobs:
       - uses: microsoft/powerplatform-actions/pack-solution@v1
         with:
           solution-file: out/exported/solution2610222.zip
-          solution-folder: contents
+          solution-folder: out/solutions/solution2610222
           solution-type: Both
       - uses: actions/upload-artifact@v4
         with:
